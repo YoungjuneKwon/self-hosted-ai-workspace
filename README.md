@@ -57,7 +57,12 @@ A Debian container whose home directory survives restarts, with:
 
 ## Quick start
 
-Docker is required. On Windows, use Docker Desktop with the WSL2 backend.
+Docker is required. On Linux, Docker Engine. On Windows, install Docker Engine
+inside a WSL2 distribution and run the script there.
+
+Docker Desktop also works, but it puts its own proxy between the container and
+the Windows host, so published ports behave differently from a direct Engine
+bind. If you have fought with that before, the WSL2 Engine route avoids it.
 
 ```sh
 git clone https://github.com/YoungjuneKwon/self-hosted-ai-workspace
@@ -73,8 +78,13 @@ outside Docker is `workspace/`, in the directory it was run from.
 ./bootstrap.sh --help            # every flag
 ./bootstrap.sh --no-valetfs      # skip the vault
 ./bootstrap.sh --grant-vault     # answer the permission question up front
+./bootstrap.sh --port 5173       # publish a port, repeatable
 ./bootstrap.sh --shell           # shell into a workspace already built
+./bootstrap.sh -- claude --version   # run one command instead of a shell
 ```
+
+No ports are published unless you ask for them. To reach a dev server running
+in the container, pass `--port` once per port.
 
 Run `claude` inside the container to sign in. The login session is stored in
 the volume.

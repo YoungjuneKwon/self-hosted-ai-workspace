@@ -11,6 +11,7 @@ WITH_VALETFS=1
 GRANT_VAULT=ask
 SHELL_ONLY=0
 REBUILD=0
+PORTS=()
 
 usage() {
   cat <<'EOF'
@@ -23,6 +24,8 @@ usage: ./bootstrap.sh [options]
   --grant-vault     let the agent call `valetfs exec` without asking each
                     time, without prompting you about it here
   --no-grant-vault  do not grant it; print the command to run later
+  --port <spec>     publish a port, as docker -p takes it. Repeatable.
+                    Use this to reach a dev server running in the container.
   --rebuild         rebuild the image even if it exists
   --shell           open a shell in a workspace already built
   -h, --help        this text
@@ -33,6 +36,7 @@ examples:
   ./bootstrap.sh --agents claude,opencode
   ./bootstrap.sh --workspace ~/code --name work
   ./bootstrap.sh --shell
+  ./bootstrap.sh --port 3000 --port 5173
   ./bootstrap.sh --grant-vault -- claude --version
 EOF
 }
@@ -43,6 +47,7 @@ while [ $# -gt 0 ]; do
     --workspace)  WORKSPACE="$2"; shift 2 ;;
     --agents)     AGENTS="$2"; shift 2 ;;
     --no-valetfs) WITH_VALETFS=0; shift ;;
+    --port)       PORTS+=(-p "$2"); shift 2 ;;
     --grant-vault)    GRANT_VAULT=yes; shift ;;
     --no-grant-vault) GRANT_VAULT=no;  shift ;;
     --rebuild)    REBUILD=1; shift ;;
@@ -66,8 +71,9 @@ if [ "$SHELL_ONLY" -eq 0 ]; then
   say "Checking this machine"
 
   command -v docker >/dev/null 2>&1 || die \
-    "Docker is not installed. On Windows install Docker Desktop and turn on the
-       WSL2 backend; on Linux install docker.io or Docker Engine."
+    "Docker is not installed. On Linux install Docker Engine. On Windows,
+       install Docker Engine inside a WSL2 distribution and run this there;
+       Docker Desktop also works but adds its own port proxy."
 
   docker info >/dev/null 2>&1 || die \
     "Docker is installed but not responding. Start Docker Desktop, or run
@@ -93,6 +99,7 @@ if [ "$SHELL_ONLY" -eq 0 ]; then
   printf '    arch      %s\n' "$(uname -m)"
   printf '    agents    %s\n' "$AGENTS"
   printf '    valetfs   %s\n' "$([ "$WITH_VALETFS" -eq 1 ] && echo yes || echo no)"
+  [ ${#PORTS[@]} -gt 0 ] && printf '    ports     %s\n' "${PORTS[*]/-p /}"
 fi
 
 mkdir -p "$WORKSPACE"
@@ -191,7 +198,7 @@ if [ "$SHELL_ONLY" -eq 0 ] && [ $# -eq 0 ]; then
 EOF
 fi
 
-exec docker run --rm "${TTY_FLAGS[@]}" \
+exec docker run --rm "${TTY_FLAGS[@]}" "${PORTS[@]}" \
   --name "$NAME" \
   --hostname "$NAME" \
   -v "$VOLUME:/home/agent" \

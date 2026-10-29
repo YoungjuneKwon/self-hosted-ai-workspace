@@ -53,7 +53,12 @@ English: [../../README.md](../../README.md)
 
 ## 빠른 시작
 
-도커가 필요합니다. 윈도우에서는 WSL2 백엔드를 활성화한 Docker Desktop 을 사용합니다.
+도커가 필요합니다. 리눅스에서는 Docker Engine 을 쓰고, 윈도우에서는 WSL2 배포판 안에
+Docker Engine 을 설치한 뒤 그 안에서 스크립트를 실행합니다.
+
+Docker Desktop 으로도 동작하지만, 컨테이너와 윈도우 호스트 사이에 자체 프록시가 하나 더
+있어 공개한 포트의 동작이 Engine 의 직접 바인딩과 다릅니다. 이 때문에 고생한 적이 있다면
+WSL2 에 Engine 을 올리는 쪽이 그 계층을 피합니다.
 
 ```sh
 git clone https://github.com/YoungjuneKwon/self-hosted-ai-workspace
@@ -68,8 +73,13 @@ cd self-hosted-ai-workspace
 ./bootstrap.sh --help         # 전체 옵션
 ./bootstrap.sh --no-valetfs   # 금고 없이
 ./bootstrap.sh --grant-vault  # 아래 허가 질문에 미리 답하고 시작
+./bootstrap.sh --port 5173    # 포트를 공개합니다. 여러 번 쓸 수 있습니다
 ./bootstrap.sh --shell        # 이미 만든 작업환경에 셸로 들어가기
+./bootstrap.sh -- claude --version   # 셸 대신 명령 하나만 실행합니다
 ```
+
+지정하지 않으면 포트를 하나도 공개하지 않습니다. 컨테이너 안에서 돌리는 개발 서버에
+접속하려면 포트마다 `--port` 를 한 번씩 지정합니다.
 
 컨테이너 안에서 `claude` 를 실행해 로그인하면 로그인 세션이 볼륨에 저장됩니다.
 
