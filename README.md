@@ -77,8 +77,8 @@ A Debian container whose home directory survives restarts, with:
 
 **Recommended path: Docker Engine.** On Linux, install Docker Engine. On
 Windows, install Docker Engine inside a WSL2 distribution and run the script
-from there. This is the configuration everything here was tested on — Debian 12,
-Docker Engine 29.5, x86_64.
+from there. Both are tested: Debian 12 with Docker Engine 29.5, and Ubuntu
+24.04 under WSL2 with Docker Engine 27.4.
 
 **Docker Desktop is untested.** It should work, and nothing here depends on
 Engine specifically. But it has not been run, so treat it as unverified. It also
@@ -108,8 +108,54 @@ outside Docker is `workspace/`, in the directory it was run from.
 No ports are published unless you ask for them. To reach a dev server running
 in the container, pass `--port` once per port.
 
-Run `claude` inside the container to sign in. The login session is stored in
-the volume.
+Then sign in — see below, because the container has no browser.
+
+## Signing in to Claude Code
+
+Claude Code needs a Pro, Max, Team, Enterprise or Console account. The free
+claude.ai plan does not include it.
+
+Run `claude` in the container. It tries to open a browser and there isn't one,
+so:
+
+1. Press `c` to copy the login URL.
+2. Open that URL in a browser on your own machine and sign in.
+3. If the browser shows a code instead of redirecting back, paste it at the
+   `Paste code here if prompted` prompt.
+
+Credentials are written to `~/.claude/.credentials.json` with mode `0600`.
+That path is on the home volume, so the login survives `docker rm` and
+`./bootstrap.sh --rebuild`. You do this once per workspace, not per session.
+
+### For unattended use
+
+A browser login is awkward for anything that runs without you. Generate a
+one-year token instead:
+
+```sh
+claude setup-token          # prints a token; it is not saved anywhere
+export CLAUDE_CODE_OAUTH_TOKEN=<the token>
+```
+
+**That token can only make model requests.** It cannot establish Remote
+Control sessions and cannot fetch claude.ai connectors. If you want the
+workspace reachable from the phone app, sign in normally with `claude`.
+
+### If you use an API key
+
+Set `ANTHROPIC_API_KEY` and approve it when Claude Code asks. It takes
+precedence over a subscription login, which surprises people who have both —
+`unset ANTHROPIC_API_KEY` to fall back, and `/status` shows which one is
+active.
+
+Do not put that key in `.env`. That is what the vault is for.
+
+### Logins expire
+
+Claude Code warns three days out. A session running while you are away stops
+making progress once the login expires and cannot recover until you sign in
+again, so renew before a long unattended stretch. Official reference:
+<https://code.claude.com/docs/en/authentication>
 
 ## What ValetFS is
 

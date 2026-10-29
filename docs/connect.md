@@ -48,8 +48,14 @@ valetfs exec --as-file KEY fs:/keys/id_ed25519 -- \
 claude
 ```
 
-Sign in once. The session is stored in `~/.claude` on the volume, so it
-survives `docker rm` and rebuilding the image.
+The container has no browser, so press `c` to copy the login URL, open it on
+your own machine, and paste the code back at the `Paste code here if prompted`
+prompt if the browser shows one. Credentials land in
+`~/.claude/.credentials.json` (mode `0600`) on the volume, so the login
+survives `docker rm` and an image rebuild.
+
+Needs a Pro, Max, Team, Enterprise or Console account. The README covers
+`claude setup-token` and `ANTHROPIC_API_KEY` for the unattended cases.
 
 ## Claude Remote Control
 
@@ -89,6 +95,12 @@ exits, and with `--restart unless-stopped` the container goes into a restart
 loop instead of staying up. tmux is for keeping something alive inside a shell
 you are already in; for a detached container, the thing you want running is
 the thing you pass to `docker run`.
+
+**Remote Control needs a real login.** A `CLAUDE_CODE_OAUTH_TOKEN` from
+`claude setup-token` can only make model requests, so it cannot establish a
+Remote Control session. Sign in with `claude` for this. The login also has to
+outlast the session: when it expires, a listener running while you are away
+stops and cannot recover on its own.
 
 Verified: `claude remote-control` is present in the installed CLI, and a
 detached container with `--restart unless-stopped` stays up and survives

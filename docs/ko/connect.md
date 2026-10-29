@@ -46,8 +46,13 @@ valetfs exec --as-file KEY fs:/keys/id_ed25519 -- \
 claude
 ```
 
-한 번 로그인하면 됩니다. 세션은 볼륨의 `~/.claude` 에 저장되므로 `docker rm` 이나 이미지
-재빌드 후에도 남습니다.
+컨테이너에는 브라우저가 없으므로 `c` 를 눌러 로그인 URL 을 복사하고, 내 기계에서 열어
+로그인한 뒤, 브라우저가 코드를 보여 주면 `Paste code here if prompted` 자리에 붙여
+넣습니다. 자격 증명은 볼륨의 `~/.claude/.credentials.json` 에 권한 `0600` 으로 남아
+`docker rm` 과 이미지 재빌드를 견딥니다.
+
+Pro·Max·Team·Enterprise 또는 Console 계정이 필요합니다. 무인 실행용 `claude setup-token`
+과 `ANTHROPIC_API_KEY` 는 README 에 적었습니다.
 
 ## Claude 리모트 컨트롤
 
@@ -84,6 +89,11 @@ docker run -d --restart unless-stopped \
 `--restart unless-stopped` 와 만나면 컨테이너가 떠 있는 대신 **재시작 루프**에 빠집니다.
 tmux 는 이미 들어가 있는 셸 안에서 무언가를 살려 둘 때 쓰는 것이고, 분리 컨테이너에서
 계속 돌아야 하는 것은 `docker run` 에 넘기는 그 명령입니다.
+
+**리모트 컨트롤에는 정식 로그인이 필요합니다.** `claude setup-token` 으로 받은
+`CLAUDE_CODE_OAUTH_TOKEN` 은 모델 요청만 할 수 있어 리모트 컨트롤 세션을 열지 못합니다.
+이 용도로는 `claude` 로 로그인하십시오. 또한 로그인이 세션보다 오래 살아야 합니다. 만료되면
+자리를 비운 사이 돌던 리스너가 멈추고 스스로 복구하지 못합니다.
 
 확인한 범위: 설치된 CLI 에 `claude remote-control` 이 존재하며, 주 프로세스를 전면에서
 실행하는 분리 컨테이너는 `--restart unless-stopped` 로 떠 있고 `docker restart` 후에도

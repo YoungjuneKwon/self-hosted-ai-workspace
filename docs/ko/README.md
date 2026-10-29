@@ -72,8 +72,8 @@ English: [../../README.md](../../README.md)
 
 **권장 경로는 Docker Engine 입니다.** 리눅스에서는 Docker Engine 을 설치하고,
 윈도우에서는 WSL2 배포판 안에 Docker Engine 을 설치한 뒤 그 안에서 스크립트를
-실행합니다. 여기 적힌 모든 것을 **이 구성에서 검증했습니다** — Debian 12, Docker
-Engine 29.5, x86_64.
+실행합니다. **두 구성 모두에서 검증했습니다** — Debian 12 + Docker Engine 29.5, 그리고
+WSL2 의 Ubuntu 24.04 + Docker Engine 27.4.
 
 **Docker Desktop 은 검증하지 않았습니다.** 동작할 것으로 보고 여기 어떤 것도 Engine
 에만 의존하지 않지만, 실제로 돌려 보지 않았으니 미확인으로 보시면 됩니다. 또한 컨테이너와
@@ -102,7 +102,51 @@ cd self-hosted-ai-workspace
 지정하지 않으면 포트를 하나도 공개하지 않습니다. 컨테이너 안에서 돌리는 개발 서버에
 접속하려면 포트마다 `--port` 를 한 번씩 지정합니다.
 
-컨테이너 안에서 `claude` 를 실행해 로그인하면 로그인 세션이 볼륨에 저장됩니다.
+그다음 로그인합니다. 컨테이너에는 브라우저가 없으므로 아래를 보십시오.
+
+## Claude Code 로그인
+
+Claude Code 에는 Pro·Max·Team·Enterprise 또는 Console 계정이 필요합니다. **무료
+claude.ai 요금제에는 포함되지 않습니다.**
+
+컨테이너에서 `claude` 를 실행합니다. 브라우저를 열려고 시도하는데 컨테이너에는 없으므로
+이렇게 합니다.
+
+1. `c` 를 눌러 로그인 URL 을 복사합니다.
+2. 그 주소를 **내 기계의 브라우저**에서 열어 로그인합니다.
+3. 브라우저가 돌아오지 않고 코드를 보여 주면, 터미널의
+   `Paste code here if prompted` 자리에 붙여 넣습니다.
+
+자격 증명은 `~/.claude/.credentials.json` 에 권한 `0600` 으로 기록됩니다. 이 경로는 홈
+볼륨에 있으므로 `docker rm` 이나 `./bootstrap.sh --rebuild` 후에도 로그인이 남습니다.
+세션마다가 아니라 작업환경마다 한 번입니다.
+
+### 사람 없이 돌릴 때
+
+브라우저 로그인은 무인 실행에 맞지 않습니다. 1년짜리 토큰을 대신 발급합니다.
+
+```sh
+claude setup-token          # 토큰을 출력만 하고 어디에도 저장하지 않습니다
+export CLAUDE_CODE_OAUTH_TOKEN=<발급받은 토큰>
+```
+
+**이 토큰은 모델 요청만 할 수 있습니다.** 리모트 컨트롤 세션을 열 수 없고 claude.ai
+커넥터도 가져오지 못합니다. 폰 앱에서 이 작업환경에 접속하고 싶다면 `claude` 로 정식
+로그인해야 합니다.
+
+### API 키를 쓴다면
+
+`ANTHROPIC_API_KEY` 를 설정하고 Claude Code 가 물을 때 승인합니다. 이 키는 구독 로그인보다
+**우선합니다.** 둘 다 가진 사람이 자주 걸리는 지점입니다. 되돌리려면
+`unset ANTHROPIC_API_KEY` 하고, 무엇이 쓰이는지는 `/status` 로 봅니다.
+
+그 키를 `.env` 에 두지 마십시오. 금고가 있는 이유가 그것입니다.
+
+### 로그인은 만료됩니다
+
+Claude Code 가 3일 전에 경고합니다. 자리를 비운 사이 돌던 세션은 로그인이 만료되면 **더
+진행하지 못하고 스스로 복구하지 못합니다.** 오래 비울 예정이면 미리 갱신하십시오. 공식
+문서: <https://code.claude.com/docs/en/authentication>
 
 ## ValetFS 가 무엇인가
 
