@@ -67,7 +67,8 @@ tmux attach -t rc       # 들여다봅니다. Ctrl-b d 로 띄워 둔 채 빠져
 ```
 
 컨테이너 자체도 계속 떠 있어야 합니다. `bootstrap.sh` 는 `docker run --rm` 을 쓰므로
-셸을 나가면 멈춥니다. 자리를 비운 동안에도 접속할 작업환경이라면 분리 모드로 띄우십시오.
+셸을 나가면 멈춥니다. 자리를 비운 동안에도 접속할 작업환경이라면, **리스너를 컨테이너의
+주 프로세스로 두고** 분리 모드로 띄우십시오.
 
 ```sh
 docker run -d --restart unless-stopped \
@@ -76,11 +77,18 @@ docker run -d --restart unless-stopped \
   -v "$PWD/workspace:/workspace" \
   -w /workspace \
   ai-workspace:latest \
-  tmux new -s rc -d 'claude remote-control --name my-workspace' \; wait
+  claude remote-control --name my-workspace
 ```
 
-확인한 범위: 설치된 CLI 에 `claude remote-control` 이 존재합니다. 실제 리스너 기동은
-본인 Claude 계정이 있어야 하므로, 의지하기 전에 직접 시험해 보십시오.
+이것을 `tmux new -d` 로 감싸지 마십시오. 분리된 tmux 는 즉시 반환되고 PID 1 이 끝나므로,
+`--restart unless-stopped` 와 만나면 컨테이너가 떠 있는 대신 **재시작 루프**에 빠집니다.
+tmux 는 이미 들어가 있는 셸 안에서 무언가를 살려 둘 때 쓰는 것이고, 분리 컨테이너에서
+계속 돌아야 하는 것은 `docker run` 에 넘기는 그 명령입니다.
+
+확인한 범위: 설치된 CLI 에 `claude remote-control` 이 존재하며, 주 프로세스를 전면에서
+실행하는 분리 컨테이너는 `--restart unless-stopped` 로 떠 있고 `docker restart` 후에도
+살아남습니다. 실제 리스너 기동은 본인 Claude 계정이 있어야 하므로, 그 부분은 직접 시험해
+보십시오.
 
 ## MCP 커넥터
 

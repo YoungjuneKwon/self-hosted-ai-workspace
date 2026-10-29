@@ -71,7 +71,8 @@ tmux attach -t rc       # look at it; Ctrl-b d to leave it running
 
 The container itself has to keep running too. `bootstrap.sh` uses
 `docker run --rm`, which stops when you exit the shell. For a workspace you
-want to reach while you are away, start it detached instead:
+want to reach while you are away, start it detached with the listener as the
+container's main process:
 
 ```sh
 docker run -d --restart unless-stopped \
@@ -80,12 +81,20 @@ docker run -d --restart unless-stopped \
   -v "$PWD/workspace:/workspace" \
   -w /workspace \
   ai-workspace:latest \
-  tmux new -s rc -d 'claude remote-control --name my-workspace' \; wait
+  claude remote-control --name my-workspace
 ```
 
-Verified: `claude remote-control` is present in the installed CLI. Starting an
-actual listener needs your Claude account, so test it yourself before relying
-on it.
+Do not wrap that in `tmux new -d`. A detached tmux returns immediately, PID 1
+exits, and with `--restart unless-stopped` the container goes into a restart
+loop instead of staying up. tmux is for keeping something alive inside a shell
+you are already in; for a detached container, the thing you want running is
+the thing you pass to `docker run`.
+
+Verified: `claude remote-control` is present in the installed CLI, and a
+detached container with `--restart unless-stopped` stays up and survives
+`docker restart` when its main process runs in the foreground. Starting an
+actual listener needs your Claude account, so test that part yourself before
+relying on it.
 
 ## MCP connectors
 
