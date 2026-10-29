@@ -4,15 +4,21 @@ FROM debian:12-slim
 ARG AGENTS=claude
 ARG WITH_VALETFS=1
 ARG VALETFS_VERSION=v0.3.0
+ARG WITH_CLOUDFLARED=0
+ARG CLOUDFLARED_VERSION=2026.10.5
 ARG NODE_MAJOR=22
 
 ENV DEBIAN_FRONTEND=noninteractive \
     LANG=C.UTF-8 \
     NPM_CONFIG_UPDATE_NOTIFIER=false
 
-# The floor every agent assumes is already there.
+# The floor every agent assumes is already there. openssh-client, rsync and
+# tmux are in this list because most real work reaches something outside the
+# container, and a long-running process needs to survive the shell that
+# started it.
 RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates curl gnupg git jq less ripgrep tini sudo unzip \
+      openssh-client openssl rsync tmux wget \
       python3 python3-venv python3-pip \
  && rm -rf /var/lib/apt/lists/*
 
@@ -59,6 +65,22 @@ RUN set -eux; \
       install -m 0755 /tmp/valetfs /usr/local/bin/valetfs; \
       rm -f /tmp/valetfs /tmp/SHA256SUMS; \
       valetfs --version; \
+    fi
+
+# cloudflared, for exposing something in here at a public URL. Off by default
+# because most sessions never need it.
+RUN set -eux; \
+    if [ "$WITH_CLOUDFLARED" = "1" ]; then \
+      arch="$(dpkg --print-architecture)"; \
+      case "$arch" in amd64|arm64) ;; \
+        *) echo "no cloudflared build for $arch" >&2; exit 1 ;; \
+      esac; \
+      curl -fsSL -o /tmp/cloudflared.deb \
+        "https://github.com/cloudflare/cloudflared/releases/download/${CLOUDFLARED_VERSION}/cloudflared-linux-${arch}.deb"; \
+      apt-get update; \
+      apt-get install -y --no-install-recommends /tmp/cloudflared.deb; \
+      rm -rf /tmp/cloudflared.deb /var/lib/apt/lists/*; \
+      cloudflared --version; \
     fi
 
 # Not root. The agent runs as a user that can sudo when it is told to.

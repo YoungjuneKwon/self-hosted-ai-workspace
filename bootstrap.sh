@@ -8,6 +8,7 @@ NAME="ai-workspace"
 WORKSPACE="$HERE/workspace"
 AGENTS="claude"
 WITH_VALETFS=1
+WITH_CLOUDFLARED=0
 GRANT_VAULT=ask
 SHELL_ONLY=0
 REBUILD=0
@@ -21,6 +22,9 @@ usage: ./bootstrap.sh [options]
   --workspace <d>   directory to mount at /workspace (default: ./workspace)
   --agents <list>   claude,opencode,codex            (default: claude)
   --no-valetfs      do not install the ValetFS client
+  --with-cloudflared
+                    also install cloudflared, for exposing something in the
+                    container at a public URL
   --grant-vault     let the agent call `valetfs exec` without asking each
                     time, without prompting you about it here
   --no-grant-vault  do not grant it; print the command to run later
@@ -47,6 +51,7 @@ while [ $# -gt 0 ]; do
     --workspace)  WORKSPACE="$2"; shift 2 ;;
     --agents)     AGENTS="$2"; shift 2 ;;
     --no-valetfs) WITH_VALETFS=0; shift ;;
+    --with-cloudflared) WITH_CLOUDFLARED=1; shift ;;
     --port)       PORTS+=(-p "$2"); shift 2 ;;
     --grant-vault)    GRANT_VAULT=yes; shift ;;
     --no-grant-vault) GRANT_VAULT=no;  shift ;;
@@ -99,6 +104,7 @@ if [ "$SHELL_ONLY" -eq 0 ]; then
   printf '    arch      %s\n' "$(uname -m)"
   printf '    agents    %s\n' "$AGENTS"
   printf '    valetfs   %s\n' "$([ "$WITH_VALETFS" -eq 1 ] && echo yes || echo no)"
+  printf '    tunnel    %s\n' "$([ "$WITH_CLOUDFLARED" -eq 1 ] && echo cloudflared || echo no)"
   [ ${#PORTS[@]} -gt 0 ] && printf '    ports     %s\n' "${PORTS[*]/-p /}"
 fi
 
@@ -113,6 +119,7 @@ if [ "$SHELL_ONLY" -eq 0 ]; then
     docker build \
       --build-arg "AGENTS=$AGENTS" \
       --build-arg "WITH_VALETFS=$WITH_VALETFS" \
+      --build-arg "WITH_CLOUDFLARED=$WITH_CLOUDFLARED" \
       -t "$IMAGE" \
       -f "$HERE/docker/Dockerfile" \
       "$HERE/docker"

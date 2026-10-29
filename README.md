@@ -15,6 +15,11 @@ It is closer to the difference between a hotel and a house. A cloud workspace
 is suitable for most users. This repository is for users who need to manage
 their own workspace.
 
+**Who this assumes you are:** someone who already uses a coding agent such as
+Claude Code and has run into its limits. This is not an introduction to AI
+coding agents, and it will not be worth the setup if you are still deciding
+whether to use one.
+
 ## What the difference actually is
 
 This comparison reflects the features available in October 2026. Features can
@@ -52,6 +57,9 @@ A Debian container whose home directory survives restarts, with:
   single command without storing it in the container. The installer checks the
   published SHA-256 before installing. The checksum section below explains the
   limits of this check.
+- `ssh`, `rsync`, `tmux`, `wget`, `openssl`, because most real work reaches
+  something outside the container and a listener has to outlive the shell that
+  started it. `cloudflared` with `--with-cloudflared`.
 - `workspace/`, bind-mounted from the host. Your code remains on the host if
   you delete the container.
 
@@ -108,6 +116,13 @@ there.
 [docs/secrets.md](docs/secrets.md) explains how secrets are passed to commands
 without being read by the agent, along with the security limits of this
 approach.
+
+## Connecting to the outside
+
+GitHub, Claude Code sign-in, Claude Remote Control, MCP connectors and public
+URLs each need one step, and each stores its state in the home volume so you
+do it once. [docs/connect.md](docs/connect.md) covers them, including what
+does not pass through into the container.
 
 ## About that checksum
 
