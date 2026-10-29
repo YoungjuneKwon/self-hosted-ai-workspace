@@ -1,0 +1,21 @@
+# Alternative to ./bootstrap.sh for people who already live in compose.
+# The bootstrap script is the supported path; this is here for convenience.
+services:
+  workspace:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        AGENTS: "${AGENTS:-claude}"
+        WITH_VALETFS: "${WITH_VALETFS:-1}"
+    image: ai-workspace:latest
+    container_name: ai-workspace
+    hostname: ai-workspace
+    stdin_open: true
+    tty: true
+    working_dir: /workspace
+    volumes:
+      - home:/home/agent
+      - ../workspace:/workspace
+volumes:
+  home:

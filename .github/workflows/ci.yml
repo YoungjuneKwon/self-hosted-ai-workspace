@@ -1,0 +1,35 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  shell:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: shellcheck
+        run: |
+          sudo apt-get update && sudo apt-get install -y shellcheck
+          shellcheck bootstrap.sh docker/entrypoint.sh
+
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: build
+        run: docker build -t ai-workspace:ci -f docker/Dockerfile docker
+      - name: the tools are actually there
+        run: |
+          docker run --rm ai-workspace:ci bash -lc '
+            set -e
+            node --version
+            python3 --version
+            git --version
+            gh --version | head -1
+            claude --version
+            valetfs --version
+            test "$(id -un)" = agent
+          '
