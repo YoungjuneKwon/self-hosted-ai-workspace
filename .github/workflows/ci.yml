@@ -37,5 +37,6 @@ jobs:
             test "$(id -un)" = agent
           '
       - name: the bootstrap can run a command without a terminal
-        run: ./bootstrap.sh --name ci --no-valetfs --no-grant-vault -- \
-               bash -lc 'id -un && node --version'
+        run: |
+          ./bootstrap.sh --name ci --no-valetfs --no-grant-vault -- \
+            bash -lc 'id -un && node --version'
