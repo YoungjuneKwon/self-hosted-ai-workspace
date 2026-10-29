@@ -66,7 +66,7 @@ An agent that can only write interface code needs a person to look at the
 result and describe what is wrong on every iteration. An agent that can mount
 what it built and inspect it does not need that relay.
 
-## Keeps working while you sleep
+## Runs 24/7 without interruption
 
 Cloud workspaces have the advantage here. A hosted agent keeps running even if
 your home computer loses power or its network connection, or you close your

@@ -27,7 +27,7 @@ change, so verify current support for anything you need.
 | Desktop and browser control | △ | △ | O |
 | Credentials and permissions | X | △ | O |
 | Generates UI inside the loop | X | △ | O |
-| **Keeps working while you sleep** | **O** | **O** | **X** |
+| **Runs 24/7 without interruption** | **O** | **O** | **X** |
 | Data stays where you put it | X | X | O |
 | Cost you can predict | △ | △ | O |
 
