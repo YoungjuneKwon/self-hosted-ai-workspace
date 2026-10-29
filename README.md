@@ -4,7 +4,7 @@ A script for setting up a persistent, isolated container for AI coding agents.
 
 Korean / 한국어: [docs/ko/README.md](docs/ko/README.md)
 
----
+## Why you might need this
 
 A cloud workspace is ready immediately and starts fresh each time. That works
 well for occasional use. With daily use, you have to set up the same tools,
