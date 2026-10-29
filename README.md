@@ -1,6 +1,16 @@
 # self-hosted-ai-workspace
 
-A script for setting up a persistent, isolated container for AI coding agents.
+[![CI](https://github.com/YoungjuneKwon/self-hosted-ai-workspace/actions/workflows/ci.yml/badge.svg)](https://github.com/YoungjuneKwon/self-hosted-ai-workspace/actions/workflows/ci.yml)
+[![license](https://img.shields.io/github/license/YoungjuneKwon/self-hosted-ai-workspace.svg)](LICENSE)
+[![Docker](https://img.shields.io/badge/Docker-Engine-2496ED.svg?logo=docker&logoColor=white)](https://docs.docker.com/engine/)
+[![Debian](https://img.shields.io/badge/Debian-12-A81D33.svg?logo=debian&logoColor=white)](https://www.debian.org/)
+[![Node](https://img.shields.io/badge/Node-22-5FA04E.svg?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-included-D97757.svg)](https://docs.claude.com/en/docs/claude-code)
+[![ValetFS](https://img.shields.io/badge/ValetFS-v0.3.0-0A7E8C.svg)](https://github.com/WinM2M/valet-fs)
+[![docs](https://img.shields.io/badge/docs-%ED%95%9C%EA%B5%AD%EC%96%B4-blue.svg)](docs/ko/README.md)
+
+**A script for setting up a persistent, isolated container for AI coding agents.
+Your keys stay on your phone; your context stays on your disk.**
 
 Korean / 한국어: [docs/ko/README.md](docs/ko/README.md)
 
@@ -65,12 +75,16 @@ A Debian container whose home directory survives restarts, with:
 
 ## Quick start
 
-Docker is required. On Linux, Docker Engine. On Windows, install Docker Engine
-inside a WSL2 distribution and run the script there.
+**Recommended path: Docker Engine.** On Linux, install Docker Engine. On
+Windows, install Docker Engine inside a WSL2 distribution and run the script
+from there. This is the configuration everything here was tested on — Debian 12,
+Docker Engine 29.5, x86_64.
 
-Docker Desktop also works, but it puts its own proxy between the container and
-the Windows host, so published ports behave differently from a direct Engine
-bind. If you have fought with that before, the WSL2 Engine route avoids it.
+**Docker Desktop is untested.** It should work, and nothing here depends on
+Engine specifically. But it has not been run, so treat it as unverified. It also
+puts its own proxy between the container and the Windows host, so published
+ports behave differently from a direct Engine bind. If that has cost you time
+before, installing Engine inside WSL2 avoids the layer entirely.
 
 ```sh
 git clone https://github.com/YoungjuneKwon/self-hosted-ai-workspace
@@ -96,6 +110,30 @@ in the container, pass `--port` once per port.
 
 Run `claude` inside the container to sign in. The login session is stored in
 the volume.
+
+## What ValetFS is
+
+[ValetFS](https://github.com/WinM2M/valet-fs) is referenced throughout this
+repository, so it is worth one paragraph before it shows up again.
+
+It is a small open-source tool that keeps API keys on your phone instead of on
+the machine the agent runs on. A daemon in the container receives a key in
+memory, only while the phone allows it, and `valetfs exec` hands the value to a
+child process so the agent never reads it. The name is the point: like valet
+parking, someone else drives, and the key comes back to you.
+
+```sh
+valetfs exec fs:/keys/aws.env -- aws s3 ls s3://bucket
+```
+
+It is here because of the row above: an agent that reads a key has put a copy
+of it in its transcript, where you cannot revoke it. It is optional — pass
+`--no-valetfs` and everything else still works. It is MIT-licensed and free,
+and I wrote it, which is also why it is the tool this workspace reaches for.
+
+Repository: <https://github.com/WinM2M/valet-fs> ·
+Docs: <https://winm2m.github.io/valet-fs/> ·
+Details in [docs/secrets.md](docs/secrets.md)
 
 ## The question the bootstrap asks
 
@@ -155,6 +193,9 @@ cosign verify-blob \
   directly to another environment.
 - **Not independently audited.** There has been no third-party security review.
   Read `docker/Dockerfile` and `bootstrap.sh` before running them.
+- **Not tested on Docker Desktop.** Everything here was run on Docker Engine.
+  Docker Desktop is expected to work and is not recommended against, but it is
+  unverified. If you try it, an issue reporting what happened is welcome.
 
 ValetFS is published by the same author as this repository.
 
