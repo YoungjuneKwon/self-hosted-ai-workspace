@@ -1,28 +1,24 @@
 # self-hosted-ai-workspace
 
-One script that gives you a persistent, isolated machine where AI coding agents
-actually live — instead of a chat tab that forgets you when you close it.
+A script that sets up a persistent, isolated container for working with AI
+coding agents every day.
 
 Korean / 한국어: [docs/ko/README.md](docs/ko/README.md)
 
 ---
 
-## A hotel room, or a home
+I have run a setup like this daily for about a year. People kept asking how it
+was put together, so here it is, minus the parts that only work on my machine.
 
-A hotel is a good deal. It opens the moment you arrive, someone cleans it every
-day, and you never think about the plumbing. For a trip, a hotel is the right
-answer and buying a house would be a silly one.
-
-But you cannot leave anything of your own in a hotel room. You check out and the
-room is wiped. You cannot drill the wall. Your valuables go in a safe whose
-combination the front desk knows.
-
-Cloud AI workspaces are hotels, and they are good ones. This repository is for
-the people who stopped travelling and started living there — who work with an
-agent every day, and have begun to notice that every morning starts from an
-empty room.
+The short version of why: a cloud workspace opens instantly and is clean every
+time, which is the right trade for occasional use. It is the wrong trade once
+you are in there every day and keep rebuilding the same tools, files and
+permissions. Hotel, or house. Most people should stay in the hotel.
 
 ## What the difference actually is
+
+My read as of October 2026. Vendor features move, so check the current state
+before trusting a row.
 
 | | OpenAI cloud | Anthropic cloud | This workspace |
 |---|:---:|:---:|:---:|
@@ -37,29 +33,29 @@ empty room.
 
 `O` directly supported · `△` partial or constrained · `X` not available
 
-Read the row in bold again. **The cloud wins that one and it is not close.** A
-hotel has a generator; your house does not. If your machine is off, your agent
-is off. Everything else on this list is a reason to own a house, and that row is
-the reason to keep using hotels too. Most people should.
+The bold row is the one the cloud wins. A hosted agent keeps running when my
+power, router or laptop does not. I use an always-on machine, cron and a
+restart policy, and it still is not the same thing. Scheduled work I cannot
+afford to miss goes in the cloud. I use both.
 
-Longer version, with the reasoning behind each row:
-[docs/why-this-exists.md](docs/why-this-exists.md).
+Reasoning for each row: [docs/why-this-exists.md](docs/why-this-exists.md).
 
 ## What you get
 
-A Debian container with a home directory that persists across restarts, holding:
+A Debian container whose home directory survives restarts, with:
 
-- **Node 22, Python 3.11, git, gh, ripgrep, jq** — the floor every agent assumes
-- **Claude Code**, and optionally **opencode** and **Codex CLI**
-- **[ValetFS](https://github.com/WinM2M/valet-fs)** — your API keys stay on your
-  phone and are lent to the container in memory, for one command, while you
-  allow it. Installed with its checksum and signature verified.
-- A bind-mounted `workspace/` directory, so your code lives on your disk and the
-  container is disposable
+- Node 22, Python 3.11, git, gh, ripgrep, jq
+- Claude Code. Optionally opencode and Codex CLI.
+- [ValetFS](https://github.com/WinM2M/valet-fs), which gives a secret to one
+  command without storing it in the container. The installer checks the
+  published SHA-256 before installing. See the note below about what that
+  check does and does not prove.
+- `workspace/`, bind-mounted from your disk, so your code is not in the
+  container and the container can be thrown away
 
 ## Quick start
 
-Requires Docker. On Windows, Docker Desktop with the WSL2 backend.
+Needs Docker. On Windows, Docker Desktop with the WSL2 backend.
 
 ```sh
 git clone https://github.com/YoungjuneKwon/self-hosted-ai-workspace
@@ -67,8 +63,9 @@ cd self-hosted-ai-workspace
 ./bootstrap.sh
 ```
 
-The script checks your environment, builds the image, and starts the container.
-It changes nothing outside Docker and the directory you run it in.
+The script checks for the tools it needs, then creates a Docker image, a named
+volume for the home directory, and a container. Outside Docker it only creates
+`workspace/` in the directory you ran it from.
 
 ```sh
 ./bootstrap.sh --help            # every flag
@@ -77,42 +74,54 @@ It changes nothing outside Docker and the directory you run it in.
 ./bootstrap.sh --shell           # shell into a workspace you already built
 ```
 
-Then, inside the container:
+Inside, run `claude` once to sign in. The session is kept in the volume.
 
-```sh
-claude            # sign in once; the session persists in the named volume
-valetfs --help    # pair your phone when you are ready to use real keys
-```
+## The question the bootstrap asks
 
-## The one question the bootstrap asks you
+Before starting the container, the script asks whether the agent may call
+`valetfs exec` without a permission prompt every time, and lists what the grant
+covers: `exec`, `ls`, `status`, and not `cat`.
 
-Before it starts the container, the script stops and asks whether the agent may
-call `valetfs exec` without a permission prompt every time. It explains what the
-grant covers — `exec`, `ls`, `status`, and deliberately not `cat` — and waits for
-an answer.
+It asks because this is a permission decision and those should be yours. It
+does not make you go type the command afterwards, because the decision is the
+part that has to be yours, not the keystrokes. Answer with `--grant-vault` or
+`--no-grant-vault` when scripting. Non-interactive runs decline by default.
 
-It asks rather than deciding, because an agent that can open the vault on its own
-initiative is not much better than a key on disk. It asks rather than telling you
-to go type a command afterwards, because the thing that has to be yours is the
-decision, not the typing.
-
-Answer with `--grant-vault` or `--no-grant-vault` if you are scripting it. Change
-your mind later by running `valetfs setup-claude` in the container, or by editing
+To change your mind later, run `valetfs setup-claude` in the container or edit
 `~/.claude/settings.json` there.
 
-See [docs/secrets.md](docs/secrets.md) for how a secret reaches a command
-without ever passing through the agent's transcript.
+[docs/secrets.md](docs/secrets.md) covers how a secret reaches a command
+without the agent reading it, and what that does not protect you from.
+
+## About that checksum
+
+The installer downloads the SHA-256 from the same GitHub release as the binary.
+That catches a truncated or corrupted download. It does not prove provenance,
+because an attacker who can replace one file can replace the other.
+
+ValetFS releases are also signed with cosign (keyless), and that signature is a
+real trust path. I did not put cosign in the image, to keep it small. If you
+want the stronger check, run it yourself before building:
+
+```sh
+cosign verify-blob \
+  --certificate SHA256SUMS.pem \
+  --signature   SHA256SUMS.sig \
+  --certificate-identity-regexp 'https://github.com/WinM2M/valet-fs/.*' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  SHA256SUMS
+```
 
 ## What this is not
 
 - **Not a cloud replacement.** See the bold row above.
-- **Not a GPU rig.** This is a workspace for agents that call hosted models. It
+- **Not a GPU rig.** It is a workspace for agents that call hosted models. It
   does not set up local inference.
-- **Not my exact machine.** The environment this was extracted from also has a
-  browser the agent drives, a tunnel, and a few host-specific things that are
-  not portable. Those are deliberately out of scope here.
-- **Not audited by anyone but me.** Read `docker/Dockerfile` before you run it.
-  It is 60 lines and that is on purpose.
+- **Not my whole machine.** My daily setup also has a browser the agent drives,
+  a tunnel, and host-specific configuration. None of it is portable, so none of
+  it is here.
+- **Not audited by anyone but me.** There has been no third-party security
+  review. Read `docker/Dockerfile` and `bootstrap.sh` before running them.
 
 ## License
 
