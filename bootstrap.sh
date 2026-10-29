@@ -26,11 +26,14 @@ usage: ./bootstrap.sh [options]
   --rebuild         rebuild the image even if it exists
   --shell           open a shell in a workspace already built
   -h, --help        this text
+  --                everything after this runs as a command in the container
+                    instead of an interactive shell
 
 examples:
   ./bootstrap.sh --agents claude,opencode
   ./bootstrap.sh --workspace ~/code --name work
   ./bootstrap.sh --shell
+  ./bootstrap.sh --grant-vault -- claude --version
 EOF
 }
 
@@ -45,6 +48,7 @@ while [ $# -gt 0 ]; do
     --rebuild)    REBUILD=1; shift ;;
     --shell)      SHELL_ONLY=1; shift ;;
     -h|--help)    usage; exit 0 ;;
+    --)           shift; break ;;
     *) echo "unknown option: $1" >&2; usage >&2; exit 2 ;;
   esac
 done
@@ -157,11 +161,24 @@ if [ "$SHELL_ONLY" -eq 1 ]; then
     "No image named $IMAGE. Run ./bootstrap.sh without --shell first."
 fi
 
+# An interactive shell needs a terminal on both ends. Without one, run the
+# command that was passed after -- and skip the tty flags, rather than letting
+# docker fail with "cannot attach stdin to a TTY-enabled container".
+TTY_FLAGS=()
+if [ -t 0 ] && [ -t 1 ]; then
+  TTY_FLAGS=(-it)
+elif [ $# -eq 0 ]; then
+  die "Not a terminal, so there is nothing to attach a shell to. Either run
+       this from a terminal, or pass a command:
+
+         ./bootstrap.sh -- claude --version"
+fi
+
 say "Entering the workspace"
 printf '    home       %s  (persists)\n' "$VOLUME"
 printf '    workspace  %s  (your disk)\n' "$WORKSPACE"
 
-if [ "$SHELL_ONLY" -eq 0 ]; then
+if [ "$SHELL_ONLY" -eq 0 ] && [ $# -eq 0 ]; then
   printf '    vault      %s\n' \
     "$([ "$GRANT_VAULT" = yes ] && echo "agent may call valetfs exec" \
                                 || echo "agent will ask each time")"
@@ -174,7 +191,7 @@ if [ "$SHELL_ONLY" -eq 0 ]; then
 EOF
 fi
 
-exec docker run --rm -it \
+exec docker run --rm "${TTY_FLAGS[@]}" \
   --name "$NAME" \
   --hostname "$NAME" \
   -v "$VOLUME:/home/agent" \
