@@ -1,3 +1,5 @@
 .env
 workspace/*
 !workspace/.gitkeep
+.review-brief.md
+*.review.md
