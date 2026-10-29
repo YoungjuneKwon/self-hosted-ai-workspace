@@ -1,24 +1,24 @@
 # self-hosted-ai-workspace
 
-A script that sets up a persistent, isolated container for working with AI
-coding agents every day.
+A script for setting up a persistent, isolated container for AI coding agents.
 
 Korean / 한국어: [docs/ko/README.md](docs/ko/README.md)
 
 ---
 
-A cloud workspace opens instantly and is clean every time. For occasional use
-that is the right trade. For daily use it means rebuilding the same tools,
-files and permissions on every session, and accepting that credentials, context
-and limits are managed by someone else.
+A cloud workspace is ready immediately and starts fresh each time. That works
+well for occasional use. With daily use, you have to set up the same tools,
+files and permissions for each session. The provider also manages your
+credentials, context and limits.
 
-Hotel, or house. Most people should stay in the hotel. This is for the case
-where that stops being true.
+It is closer to the difference between a hotel and a house. A cloud workspace
+is suitable for most users. This repository is for users who need to manage
+their own workspace.
 
 ## What the difference actually is
 
-Assessment as of October 2026. Vendor features move, so check any row that
-matters before relying on it.
+This comparison reflects the features available in October 2026. Features can
+change, so verify current support for anything you need.
 
 | | OpenAI cloud | Anthropic cloud | This workspace |
 |---|:---:|:---:|:---:|
@@ -33,10 +33,12 @@ matters before relying on it.
 
 `O` directly supported · `△` partial or constrained · `X` not available
 
-The bold row goes to the cloud. A hosted agent keeps running when a home
-machine's power, network or lid does not. An always-on host with cron and a
-restart policy narrows the gap; it does not close it. Scheduled work that
-cannot be missed belongs in the cloud. The two are not exclusive.
+Cloud workspaces have the advantage in the bold row. A hosted agent keeps
+running even if your home computer loses power or its network connection, or
+you close your laptop lid. Keeping the host on and configuring cron and a
+restart policy can reduce this difference, but cannot eliminate it. Use the
+cloud for scheduled jobs that must run. You can use it alongside this
+workspace.
 
 Reasoning for each row: [docs/why-this-exists.md](docs/why-this-exists.md).
 
@@ -46,16 +48,16 @@ A Debian container whose home directory survives restarts, with:
 
 - Node 22, Python 3.11, git, gh, ripgrep, jq
 - Claude Code. Optionally opencode and Codex CLI.
-- [ValetFS](https://github.com/WinM2M/valet-fs), which gives a secret to one
-  command without storing it in the container. The installer checks the
-  published SHA-256 before installing. See the note below on what that check
-  does and does not prove.
-- `workspace/`, bind-mounted from the host, so code lives outside the container
-  and the container stays disposable
+- [ValetFS](https://github.com/WinM2M/valet-fs), which passes a secret to a
+  single command without storing it in the container. The installer checks the
+  published SHA-256 before installing. The checksum section below explains the
+  limits of this check.
+- `workspace/`, bind-mounted from the host. Your code remains on the host if
+  you delete the container.
 
 ## Quick start
 
-Needs Docker. On Windows, Docker Desktop with the WSL2 backend.
+Docker is required. On Windows, use Docker Desktop with the WSL2 backend.
 
 ```sh
 git clone https://github.com/YoungjuneKwon/self-hosted-ai-workspace
@@ -64,8 +66,8 @@ cd self-hosted-ai-workspace
 ```
 
 The script checks for the tools it needs, then creates a Docker image, a named
-volume for the home directory, and a container. Outside Docker it creates only
-`workspace/` in the directory it was run from.
+volume for the home directory, and a container. The only thing it creates
+outside Docker is `workspace/`, in the directory it was run from.
 
 ```sh
 ./bootstrap.sh --help            # every flag
@@ -74,35 +76,39 @@ volume for the home directory, and a container. Outside Docker it creates only
 ./bootstrap.sh --shell           # shell into a workspace already built
 ```
 
-Inside, run `claude` once to sign in. The session is kept in the volume.
+Run `claude` inside the container to sign in. The login session is stored in
+the volume.
 
 ## The question the bootstrap asks
 
-Before starting the container, the script asks whether the agent may call
-`valetfs exec` without a permission prompt every time, and lists what the grant
-covers: `exec`, `ls`, `status`, and not `cat`.
+Before starting the container, the script asks whether to allow the agent to
+run `valetfs exec` without prompting for permission each time. It also lists
+the commands covered by this permission: `exec`, `ls` and `status`. `cat` is
+excluded.
 
-It asks rather than deciding, because granting an agent standing access to a
-vault is a security decision and those belong to the operator. It applies the
-answer rather than printing a command to run later, because what has to be the
-operator's is the decision, not the keystrokes.
+The script asks because the operator must decide whether to give an agent
+standing access to the vault. The script applies your answer immediately, so
+you do not need to run a separate command later.
 
-Use `--grant-vault` or `--no-grant-vault` when scripting. Non-interactive runs
-decline by default. To change the answer afterwards, run `valetfs setup-claude`
-in the container or edit `~/.claude/settings.json` there.
+For scripted use, pass `--grant-vault` or `--no-grant-vault`. Non-interactive
+runs deny access by default. To change the answer afterwards, run
+`valetfs setup-claude` in the container or edit `~/.claude/settings.json`
+there.
 
-[docs/secrets.md](docs/secrets.md) covers how a secret reaches a command
-without the agent reading it, and what that does not protect against.
+[docs/secrets.md](docs/secrets.md) explains how secrets are passed to commands
+without being read by the agent, along with the security limits of this
+approach.
 
 ## About that checksum
 
 The installer downloads the SHA-256 from the same GitHub release as the binary.
-That catches a truncated or corrupted download. It does not establish
-provenance, because whoever can replace one file can replace the other.
+This check detects incomplete or corrupted downloads. It cannot verify the
+file's source: anyone who can replace the binary can also replace the checksum
+file.
 
-ValetFS releases are also signed with cosign (keyless), which is a real trust
-path. cosign is not in the image, to keep it small. For the stronger check, run
-it before building:
+ValetFS releases also have cosign (keyless) signatures that can be verified to
+check their source. cosign is omitted to keep the image small. To verify the
+signature, run the following command before building:
 
 ```sh
 cosign verify-blob \
@@ -115,11 +121,13 @@ cosign verify-blob \
 
 ## What this is not
 
-- **Not a cloud replacement.** See the bold row above.
+- **Not a cloud replacement.** See the bold row above for the comparison on
+  keeping scheduled jobs running.
 - **Not a GPU rig.** This is a workspace for agents that call hosted models. It
   does not set up local inference.
-- **Not a full environment.** A browser the agent drives, a tunnel, and
-  host-specific configuration are all out of scope, because none of it ports.
+- **Not a complete environment setup.** Agent-controlled browsers, tunnels and
+  host-specific configuration are excluded because they cannot be transferred
+  directly to another environment.
 - **Not independently audited.** There has been no third-party security review.
   Read `docker/Dockerfile` and `bootstrap.sh` before running them.
 

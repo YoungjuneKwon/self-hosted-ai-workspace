@@ -6,90 +6,87 @@ The reasoning behind each row of the table in the README.
 
 ## Runs on hardware you control
 
-A cloud workspace starts in seconds because it runs on the vendor's hardware.
-The vendor therefore also decides what it may reach, and can change that
-without notice. On your own machine those limits are yours to set.
+A cloud workspace starts in seconds because it runs on the provider's hardware.
+The provider therefore also decides what the workspace can reach, and can
+change those limits without notice. On your own machine you set them.
 
 ## Context survives the session
 
-Hosted memory decides what is worth keeping, and what it keeps is usually a
-summary. A directory of files keeps what was written, unedited, until someone
-deletes it.
+Hosted memory selects what to retain, and what it retains is usually a summary.
+A directory of files keeps what was written until someone deletes it.
 
-This is easy to undervalue next to more visible concerns like permissions. In
-practice it is the row that changes daily work the most: an agent that starts
-from the repository plus everything already settled with it is a different
-tool from one that starts from the repository alone.
+This is easy to rank below more visible concerns such as permissions, but in
+daily use it changes the most. An agent that starts from the repository alone
+behaves differently from one that also has the notes and decisions from earlier
+sessions.
 
 ## Desktop and browser control
 
-Hosted agents constrain browser and desktop access, for defensible reasons. On
-your own machine those permissions are yours to choose, including badly. That
-is the trade-off, stated plainly rather than sold as an advantage.
+Hosted agents restrict browser and desktop access, for defensible reasons. On
+your own machine you configure those permissions, including incorrectly. That
+is the cost of the control, not a feature of it.
 
 ## Credentials and permissions
 
-This is the row the rest of the design follows from.
+The rest of the design follows from this row.
 
-The usual way to give an agent access to a service is to put a key somewhere
-the agent can read: an environment variable, a `.env` file, a token in a git
+The usual way to give an agent access to a service is to put a key where the
+agent can read it: an environment variable, a `.env` file, a token in a git
 remote URL. The problem is the reading. Once an agent reads a key in order to
-use it, a copy exists in its transcript. Deleting the original does not delete
-the copy, and the copy cannot be revoked.
+use it, a copy of that key exists in the transcript. Deleting the original does
+not delete that copy, and the copy cannot be revoked.
 
-The failure does not require carelessness. A token embedded in a git remote URL
-reaches the transcript on the first `git remote -v`, a command an agent runs
-routinely and no one thinks of as a disclosure.
+This does not require carelessness. A token embedded in a git remote URL is
+written to the transcript the first time an agent runs `git remote -v`, which
+is a routine command that nobody treats as disclosing a credential.
 
-[ValetFS](https://github.com/WinM2M/valet-fs) addresses this by keeping keys on
-a phone and serving them to the machine in memory, only while the phone allows
-it. `valetfs exec` passes the value to a child process, so the agent writes the
-command without seeing the key:
+[ValetFS](https://github.com/WinM2M/valet-fs) keeps keys on a phone and serves
+them to the machine in memory, only while the phone allows it. `valetfs exec`
+passes the value to a child process, so the agent writes the command without
+receiving the key:
 
 ```sh
 valetfs exec fs:/keys/aws.env -- aws s3 ls s3://bucket
 ```
 
 The installer checks the published SHA-256 before installing. That checksum
-ships from the same release as the binary, so it catches a bad download but
-does not establish provenance; the README gives the cosign command for that.
+ships from the same release as the binary, so it detects a corrupted download
+but cannot verify the source. The README gives the cosign command for that.
 
-The bootstrap asks before granting the agent permission to call `valetfs exec`
-unprompted. A script can apply the setting; the decision to grant standing
-access to a vault should be made by a person.
+The bootstrap asks before allowing the agent to run `valetfs exec` without a
+prompt. A script can apply the setting, but the operator decides whether an
+agent gets standing access to the vault.
 
 ValetFS is published by the same author as this repository and has not had a
 third-party security audit.
 
 ## Generates UI inside the loop
 
-An agent that can only write interface code needs a human to look at the result
-and describe what is wrong, every iteration. An agent that can mount what it
-built and inspect it closes that loop without the relay.
+An agent that can only write interface code needs a person to look at the
+result and describe what is wrong on every iteration. An agent that can mount
+what it built and inspect it does not need that relay.
 
 ## Keeps working while you sleep
 
-The cloud wins this row. A hosted agent keeps running when a home machine's
-power, network or laptop lid does not. An always-on host with cron and a
-container restart policy holds most of the time, and "most of the time" is not
-what a datacentre means by uptime.
+Cloud workspaces have the advantage here. A hosted agent keeps running even if
+your home computer loses power or its network connection, or you close your
+laptop lid. Keeping the host on with cron and a container restart policy covers
+most cases, which is not the same as the availability a datacentre provides.
 
-Scheduled work that cannot be missed belongs in the cloud. Nothing here argues
-otherwise.
+Use the cloud for scheduled jobs that must run. Nothing here argues otherwise.
 
 ## Data stays where you put it
 
-For an individual this matters less than it sounds. It starts mattering when a
-contract or a jurisdiction restricts where someone else's material may be
-processed.
+For an individual this matters less than it sounds. It becomes relevant when a
+contract or local law restricts where someone else's data may be processed.
 
 ## Cost you can predict
 
-Owning the machine makes the workspace cost easier to estimate, though hardware
-fails and electricity is not free. Model API usage is metered either way. This
-row is about the workspace, not the model.
+Owning the machine makes the workspace cost easier to estimate, although
+hardware fails and electricity is not free. Model API usage is metered in
+either case. This row covers the workspace, not the model.
 
 ## Who this is wrong for
 
-Used a few times a week, a browser tab is the better tool. The setup cost here
-only pays back under daily use.
+If you use an AI assistant a few times a week, a browser tab is the better
+tool. The setup cost here is only worth it with daily use.
