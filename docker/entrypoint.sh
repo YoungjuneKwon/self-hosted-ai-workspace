@@ -20,15 +20,32 @@ RC
   git config --global --get safe.directory >/dev/null 2>&1 \
     || git config --global --add safe.directory '*'
 
+  # The vault grant. bootstrap.sh asked; this applies the answer.
+  if command -v valetfs >/dev/null 2>&1; then
+    case "${VALETFS_GRANT:-no}" in
+      yes)
+        if valetfs setup-claude --yes >/dev/null 2>&1; then
+          echo "  Vault access granted: the agent may call valetfs exec without"
+          echo "  asking each time. valetfs cat is still blocked."
+        else
+          echo "  Could not apply the vault grant. Run 'valetfs setup-claude'"
+          echo "  yourself when you need it." >&2
+        fi
+        ;;
+      *)
+        echo "  Vault access not granted. Claude Code will ask before each"
+        echo "  valetfs call. To change that: valetfs setup-claude"
+        ;;
+    esac
+  fi
+
   touch "$HOME/.workspace-initialised"
 
   cat <<'HELLO'
 
-  This home directory is new. Two things worth doing now:
+  This home directory is new. Sign in once and it is kept in the volume:
 
-    claude                 sign in; the session is kept in the volume
-    valetfs setup-claude   let the agent use the vault without a prompt
-                           each time. Run this one yourself, on purpose.
+    claude
 
 HELLO
 fi

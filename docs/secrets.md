@@ -42,26 +42,32 @@ the shell history, the agent's context, or the transcript.
 `valetfs cat` exists and prints a secret to stdout. Do not use it from an
 agent. That is exactly the leak this is here to prevent.
 
-## The one step you do yourself
-
-```sh
-valetfs setup-claude
-```
+## The grant, and who makes it
 
 Claude Code blocks an agent from editing its own settings, and blocks it from
 reading credentials by default. Both are correct. An agent that can open the
 vault on its own initiative is not meaningfully different from a key on disk.
 
-`setup-claude` is the sanctioned way through, and it is written for a person to
-run once, at the keyboard. It adds permission for `valetfs exec`, `valetfs ls`
-and `valetfs status` — and deliberately not `valetfs cat`, unless you pass
-`--allow-cat` and accept what that means.
+`valetfs setup-claude` is the sanctioned way through. It merges three rules into
+your settings:
 
-```sh
-valetfs setup-claude --print   # see the JSON it would merge, change nothing
+```json
+{"permissions":{"allow":["Bash(valetfs exec *)","Bash(valetfs ls *)","Bash(valetfs status)"]}}
 ```
 
-The bootstrap script will not run this for you. That is the point.
+`valetfs cat` is not in that list, and will not be unless you pass `--allow-cat`
+and accept what it means.
+
+`./bootstrap.sh` asks you about this before it starts the container, and applies
+your answer. That is not the agent granting itself anything — it is you, running
+a script on your own machine, being told what you are agreeing to first. The
+prompt is the consent; the typing was never the point.
+
+```sh
+valetfs setup-claude --print   # see the JSON, change nothing
+valetfs setup-claude           # grant it later, from inside the container
+./bootstrap.sh --no-grant-vault  # decline up front, no prompt
+```
 
 ## What is still on you
 

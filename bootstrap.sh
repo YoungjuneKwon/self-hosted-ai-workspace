@@ -8,6 +8,7 @@ NAME="ai-workspace"
 WORKSPACE="$HERE/workspace"
 AGENTS="claude"
 WITH_VALETFS=1
+GRANT_VAULT=ask
 SHELL_ONLY=0
 REBUILD=0
 
@@ -19,6 +20,9 @@ usage: ./bootstrap.sh [options]
   --workspace <d>   directory to mount at /workspace (default: ./workspace)
   --agents <list>   claude,opencode,codex            (default: claude)
   --no-valetfs      do not install the ValetFS client
+  --grant-vault     let the agent call `valetfs exec` without asking each
+                    time, without prompting you about it here
+  --no-grant-vault  do not grant it; print the command to run later
   --rebuild         rebuild the image even if it exists
   --shell           open a shell in a workspace already built
   -h, --help        this text
@@ -36,6 +40,8 @@ while [ $# -gt 0 ]; do
     --workspace)  WORKSPACE="$2"; shift 2 ;;
     --agents)     AGENTS="$2"; shift 2 ;;
     --no-valetfs) WITH_VALETFS=0; shift ;;
+    --grant-vault)    GRANT_VAULT=yes; shift ;;
+    --no-grant-vault) GRANT_VAULT=no;  shift ;;
     --rebuild)    REBUILD=1; shift ;;
     --shell)      SHELL_ONLY=1; shift ;;
     -h|--help)    usage; exit 0 ;;
@@ -109,6 +115,41 @@ if [ "$SHELL_ONLY" -eq 0 ]; then
   }
 fi
 
+# ------------------------------------------------------------ vault grant
+
+if [ "$WITH_VALETFS" -eq 0 ]; then
+  GRANT_VAULT=no
+elif [ "$GRANT_VAULT" = "ask" ]; then
+  if [ -t 0 ]; then
+    cat <<'EOF'
+
+==> One decision before we start
+
+    ValetFS keeps your API keys on your phone and lends them to a command
+    without the agent ever seeing the value:
+
+        valetfs exec fs:/keys/aws.env -- aws s3 ls s3://bucket
+
+    Claude Code asks your permission every time it runs that, unless you
+    grant it once up front. The grant covers `valetfs exec`, `valetfs ls`
+    and `valetfs status`. It does NOT cover `valetfs cat`, which would hand
+    whole secrets to the agent.
+
+    This grants nothing today: the vault is empty until you pair your phone,
+    and your phone still approves every session. You can undo it by editing
+    ~/.claude/settings.json in the container.
+
+EOF
+    printf '    Grant it? [y/N] '
+    read -r reply
+    case "$reply" in [yY]*) GRANT_VAULT=yes ;; *) GRANT_VAULT=no ;; esac
+  else
+    GRANT_VAULT=no
+    warn "Not a terminal, so not granting vault access. Pass --grant-vault to
+             grant it, or run 'valetfs setup-claude' inside the container."
+  fi
+fi
+
 # -------------------------------------------------------------------- run
 
 if [ "$SHELL_ONLY" -eq 1 ]; then
@@ -121,13 +162,14 @@ printf '    home       %s  (persists)\n' "$VOLUME"
 printf '    workspace  %s  (your disk)\n' "$WORKSPACE"
 
 if [ "$SHELL_ONLY" -eq 0 ]; then
-  cat <<EOF
+  printf '    vault      %s\n' \
+    "$([ "$GRANT_VAULT" = yes ] && echo "agent may call valetfs exec" \
+                                || echo "agent will ask each time")"
+  cat <<'EOF'
 
     Inside, start with:
 
-      claude                 sign in once; the session is kept in the volume
-      valetfs setup-claude   let the agent use the vault without a prompt
-                             each time. Do this one yourself; see README.
+      claude      sign in once; the session is kept in the volume
 
 EOF
 fi
@@ -138,5 +180,6 @@ exec docker run --rm -it \
   -v "$VOLUME:/home/agent" \
   -v "$WORKSPACE:/workspace" \
   -w /workspace \
+  -e "VALETFS_GRANT=$GRANT_VAULT" \
   --env-file "$([ -f "$HERE/.env" ] && echo "$HERE/.env" || echo /dev/null)" \
   "$IMAGE" "$@"

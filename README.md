@@ -71,9 +71,10 @@ The script checks your environment, builds the image, and starts the container.
 It changes nothing outside Docker and the directory you run it in.
 
 ```sh
-./bootstrap.sh --help        # every flag
-./bootstrap.sh --no-valetfs  # skip the vault
-./bootstrap.sh --shell       # get a shell in a workspace you already built
+./bootstrap.sh --help            # every flag
+./bootstrap.sh --no-valetfs      # skip the vault
+./bootstrap.sh --grant-vault     # answer the permission question up front
+./bootstrap.sh --shell           # shell into a workspace you already built
 ```
 
 Then, inside the container:
@@ -83,18 +84,21 @@ claude            # sign in once; the session persists in the named volume
 valetfs --help    # pair your phone when you are ready to use real keys
 ```
 
-## The part worth doing by hand
+## The one question the bootstrap asks you
 
-```sh
-valetfs setup-claude
-```
+Before it starts the container, the script stops and asks whether the agent may
+call `valetfs exec` without a permission prompt every time. It explains what the
+grant covers — `exec`, `ls`, `status`, and deliberately not `cat` — and waits for
+an answer.
 
-This is the only step the bootstrap will not do for you, and that is deliberate.
-It grants the agent permission to call `valetfs exec` without asking you each
-time. An agent that can open the vault on its own initiative defeats the point
-of having one, so the grant is a person's decision, made once, at the keyboard.
+It asks rather than deciding, because an agent that can open the vault on its own
+initiative is not much better than a key on disk. It asks rather than telling you
+to go type a command afterwards, because the thing that has to be yours is the
+decision, not the typing.
 
-Everything else about this repository is convenience. This part is the argument.
+Answer with `--grant-vault` or `--no-grant-vault` if you are scripting it. Change
+your mind later by running `valetfs setup-claude` in the container, or by editing
+`~/.claude/settings.json` there.
 
 See [docs/secrets.md](docs/secrets.md) for how a secret reaches a command
 without ever passing through the agent's transcript.

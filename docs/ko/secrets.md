@@ -41,25 +41,30 @@ valetfs exec --as-file KEYFILE fs:/keys/apple.p8 -- ./sign.sh
 `valetfs cat` 은 존재하고 비밀값을 그대로 출력합니다. **에이전트에서는 쓰지 마십시오.**
 그것이 바로 여기서 막으려는 누출입니다.
 
-## 손으로 하는 한 단계
-
-```sh
-valetfs setup-claude
-```
+## 허가, 그리고 그것을 누가 내리는가
 
 Claude Code 는 에이전트가 자기 설정을 고치는 것을 막고, 기본적으로 자격 증명을 읽는
 것도 막습니다. 둘 다 옳습니다. 에이전트가 제 뜻대로 금고를 열 수 있다면 디스크에 둔
 키와 의미 있는 차이가 없습니다.
 
-`setup-claude` 는 그 통로이고, **사람이 키보드 앞에서 한 번 실행하도록** 쓰였습니다.
-`valetfs exec` · `valetfs ls` · `valetfs status` 에 대한 허가를 넣고, `valetfs cat` 은
-일부러 넣지 않습니다. `--allow-cat` 을 붙여 그 의미를 받아들이지 않는 한은요.
+`valetfs setup-claude` 가 그 통로입니다. 설정에 규칙 세 줄을 넣습니다.
 
-```sh
-valetfs setup-claude --print   # 넣을 JSON 만 보여주고 아무것도 쓰지 않는다
+```json
+{"permissions":{"allow":["Bash(valetfs exec *)","Bash(valetfs ls *)","Bash(valetfs status)"]}}
 ```
 
-부트스트랩 스크립트는 이것을 대신 돌려 주지 않습니다. 그게 요점입니다.
+`valetfs cat` 은 그 목록에 없고, `--allow-cat` 을 붙여 그 의미를 받아들이지 않는 한
+들어가지 않습니다.
+
+`./bootstrap.sh` 는 **컨테이너를 띄우기 전에 이것을 물어보고 답을 적용합니다.** 에이전트가
+스스로에게 권한을 주는 것이 아니라, **사람이 자기 기계에서 스크립트를 돌리면서 무엇에
+동의하는지 먼저 듣는 것**입니다. 동의는 그 물음에 있지, 타이핑에 있지 않았습니다.
+
+```sh
+valetfs setup-claude --print     # 넣을 JSON 만 보고 아무것도 쓰지 않는다
+valetfs setup-claude             # 컨테이너 안에서 나중에 허가한다
+./bootstrap.sh --no-grant-vault  # 묻지 않고 거절한 채로 시작한다
+```
 
 ## 그래도 내 몫으로 남는 것
 
